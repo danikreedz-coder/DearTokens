@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#081426">
+  <meta name="description" content="Dear Tokens: estimá tokens de texto, calculá costos de entrada y salida y llevá un registro local de tus sesiones.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Dear Tokens — cada token cuenta</title>
+  <style>
+    :root{color-scheme:dark;--bg:#071426;--panel:#0e2037;--panel2:#132943;--line:#243b57;--text:#f2f7ff;--muted:#9bb0ca;--blue:#2684ff;--cyan:#26d4d8;--green:#16c79a;--purple:#a78bfa;--amber:#f5b84b}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top right,#12335a 0,#071426 40%);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text);min-height:100vh}
+    .wrap{max-width:1060px;margin:auto;padding:22px 16px 48px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px}
+    .brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:grid;place-items:center;font-size:24px;box-shadow:0 8px 24px #1385ff33}
+    h1{font-size:clamp(24px,4vw,34px);margin:0;letter-spacing:-.7px}.sub{color:var(--muted);font-size:13px;margin-top:3px}.tag{border:1px solid var(--line);color:#b6d9ff;padding:8px 11px;border-radius:99px;font-size:12px;white-space:nowrap}
+    .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}.panel{background:linear-gradient(150deg,#10243c,#0a192c);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 18px 50px #0002}
+    .panel h2{font-size:17px;margin:0 0 14px}.muted{color:var(--muted)}.small{font-size:12px;line-height:1.5}.label,label.label{display:block;color:#b9cbe0;font-size:12px;margin:12px 0 7px}
+    textarea,select,input{font:inherit;color:var(--text);background:#09182a;border:1px solid #2a4565;border-radius:12px;padding:12px;width:100%;outline:none}
+    textarea{min-height:170px;resize:vertical;line-height:1.5}textarea.short{min-height:90px}textarea:focus,select:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #26d4d822}
+    input[type=date]{color-scheme:dark}
+    .controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}.btns{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+    .btn{border:0;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer;background:linear-gradient(100deg,var(--blue),#14b8d4);color:white;font-family:inherit;font-size:14px}
+    .btn.secondary{background:#1a314c;border:1px solid #35506e;color:#e4efff}.btn:active{transform:translateY(1px)}.btn:disabled{opacity:.4;cursor:not-allowed}
+    .btn.small-btn{padding:9px 12px;font-size:13px}
+    .btn:focus-visible,.iconbtn:focus-visible,summary:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+    details.more{margin-top:12px}details.more summary{cursor:pointer;color:#b6d9ff;font-size:13px;padding:4px 0}
+    .rateinfo{margin-top:10px}
+    .result{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:235px;padding:10px 0 18px}
+    .ring{--deg:0deg;width:172px;height:172px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--cyan),var(--blue) var(--deg),#233b56 var(--deg));position:relative;margin:8px 0 14px}
+    .ring.over{background:conic-gradient(var(--amber),#f08a3c)}
+    .ring:before{content:"";position:absolute;inset:9px;border-radius:50%;background:#0d2035}.ring-inner{position:relative}
+    .num{font-size:34px;font-weight:800;letter-spacing:-1px}.unit{font-size:13px;color:var(--muted)}.cost{font-size:22px;font-weight:750;margin-top:8px}
+    .goalrow{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12px;color:#b9cbe0}.goalrow input{width:130px;padding:8px 10px}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.metric{background:#0a192b;border:1px solid var(--line);border-radius:14px;padding:13px}.metric .value{font-size:18px;font-weight:750;margin-top:5px;overflow-wrap:anywhere}.metric .name{font-size:11px;color:var(--muted)}
+    .notice{background:#102c45;border:1px solid #22506a;color:#bfefff;border-radius:12px;padding:11px 12px;margin-top:13px;font-size:12px;line-height:1.5}
+    .bottom{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.history-list{display:flex;flex-direction:column;gap:8px}
+    .session{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#0a192b;border:1px solid var(--line);padding:11px;border-radius:12px}
+    .session .left{min-width:0}.session strong{font-size:13px;overflow-wrap:anywhere}.session small{display:block;color:var(--muted);margin-top:4px}
+    .session .right{display:flex;align-items:center;gap:10px;text-align:right;white-space:nowrap}
+    .iconbtn{border:1px solid #35506e;background:#1a314c;color:#cfe3ff;border-radius:9px;width:30px;height:30px;cursor:pointer;font-size:16px;line-height:1}
+    .empty{color:var(--muted);font-size:13px;padding:16px 0}
+    .models{margin-top:16px}.mhead,.mrow{display:grid;grid-template-columns:1.6fr .8fr .8fr 38px;gap:8px;align-items:center}
+    .mhead{color:var(--muted);font-size:11px;margin:14px 0 6px;padding:0 2px}.mrow{margin-bottom:8px}.mrow input{padding:10px}
+    .pricedate{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:#b9cbe0}.pricedate input{width:180px;padding:9px 10px}
+    .foot{color:#829ab6;font-size:11px;text-align:center;margin-top:22px}.hide{display:none!important}
+    .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);max-width:min(92vw,460px);background:#12335a;border:1px solid #2f6aa3;color:#eaf4ff;padding:12px 16px;border-radius:14px;font-size:13px;line-height:1.45;box-shadow:0 12px 36px #0006;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:10}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    @media(prefers-reduced-motion:reduce){.toast{transition:none}}
+    @media(max-width:760px){.grid,.bottom{grid-template-columns:1fr}.top{align-items:flex-start}.tag{display:none}.panel{padding:16px}.metrics{grid-template-columns:1fr 1fr 1fr}.result{min-height:0}
+      .mhead{display:none}.mrow{grid-template-columns:1fr 1fr 38px;padding:10px;border:1px solid var(--line);border-radius:14px;background:#0a192b}.mrow .mname{grid-column:1/-1}.mrow .mdel{grid-column:3;grid-row:2}}
+    @media(max-width:520px){.session{flex-wrap:wrap}.session .left{flex:1 1 100%}.session .right{width:100%;justify-content:space-between}}
+    @media(max-width:420px){.controls{grid-template-columns:1fr}.metrics{grid-template-columns:1fr}.num{font-size:30px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="brand"><div class="logo" aria-hidden="true">♡</div><div><h1>Dear Tokens</h1><div class="sub">Porque cada token cuenta… y también duele.</div></div></div>
+      <div class="tag">PILOTO · VERSIÓN 0.2</div>
+    </header>
+
+    <section class="grid">
+      <article class="panel">
+        <h2>✦ Probá tu texto</h2>
+        <div class="small muted">Pegá una pregunta, un prompt o cualquier texto para obtener una estimación rápida.</div>
+        <label class="label" for="textInput">Texto de entrada (tu prompt)</label>
+        <textarea id="textInput" placeholder="Ej.: Explicá cómo funciona una API REST con un ejemplo sencillo..."></textarea>
+        <details class="more">
+          <summary>Sumar la respuesta del modelo (tokens de salida)</summary>
+          <label class="label" for="outputInput">Respuesta del modelo</label>
+          <textarea id="outputInput" class="short" placeholder="Pegá la respuesta para estimar también los tokens de salida..."></textarea>
+        </details>
+        <div class="controls">
+          <div><label class="label" for="model">Modelo de referencia</label><select id="model"></select></div>
+          <div><label class="label" for="sessionLabel">Proyecto o etiqueta (opcional)</label><input id="sessionLabel" type="text" maxlength="80" placeholder="Ej.: Tesis, Cliente A"></div>
+        </div>
+        <div class="small muted rateinfo" id="rateInfo"></div>
+        <div class="btns"><button class="btn" id="estimateBtn">Calcular estimación</button><button class="btn secondary" id="clearBtn">Limpiar textos</button></div>
+        <div class="notice">⚠️ Estimación aproximada basada en longitud y estructura del texto. No equivale al conteo oficial de un proveedor ni incluye imágenes, audio o contexto oculto.</div>
+      </article>
+
+      <article class="panel">
+        <h2>Tu resumen</h2>
+        <div class="result">
+          <div class="ring" id="ring"><div class="ring-inner"><div class="num" id="tokenCount">0</div><div class="unit">tokens estimados</div></div></div>
+          <div class="muted small" id="goalCaption"></div>
+          <div class="cost" id="cost">$0,0000 USD</div>
+          <div class="small muted" id="modelCaption"></div>
+          <div class="goalrow"><label for="goalInput">Meta diaria (tokens)</label><input id="goalInput" type="number" min="0" step="1000" inputmode="numeric"></div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="name">Entrada</div><div class="value" id="inCount">0</div></div>
+          <div class="metric"><div class="name">Salida</div><div class="value" id="outCount">0</div></div>
+          <div class="metric"><div class="name">Palabras</div><div class="value" id="wordCount">0</div></div>
+        </div>
+        <div class="btns"><button class="btn" id="saveBtn">Guardar sesión</button><button class="btn secondary" id="resetStatsBtn">Borrar historial</button></div>
+      </article>
+    </section>
+
+    <section class="bottom">
+      <article class="panel">
+        <h2>▤ Historial de sesiones</h2>
+        <div id="history" class="history-list"><div class="empty">Todavía no guardaste sesiones.</div></div>
+        <div class="small muted" id="historyNote"></div>
+      </article>
+      <article class="panel">
+        <h2>◷ Resumen acumulado</h2>
+        <div class="metrics">
+          <div class="metric"><div class="name">Tokens estimados</div><div class="value" id="totalTokens">0</div></div>
+          <div class="metric"><div class="name">Costo estimado</div><div class="value" id="totalCost">$0,0000</div></div>
+          <div class="metric"><div class="name">Sesiones guardadas</div><div class="value" id="totalSessions">0</div></div>
+        </div>
+        <p class="small muted">Los datos se guardan localmente en este navegador. Si borrás los datos del sitio o cambiás de navegador o dispositivo, el historial no estará disponible: exportá una copia de vez en cuando.</p>
+        <div class="btns">
+          <button class="btn secondary small-btn" id="exportJsonBtn">Exportar JSON</button>
+          <button class="btn secondary small-btn" id="exportCsvBtn">Exportar CSV</button>
+          <button class="btn secondary small-btn" id="importBtn">Importar JSON</button>
+        </div>
+        <input type="file" id="importFile" class="hide" accept="application/json,.json">
+      </article>
+    </section>
+
+    <section class="panel models">
+      <h2>⚙ Modelos y precios</h2>
+      <div class="small muted">Tarifas en USD por 1 millón de tokens, con entrada y salida por separado. Los valores iniciales son ejemplos: copiá los vigentes desde la página oficial de cada proveedor. Las sesiones ya guardadas conservan la tarifa con la que se calcularon.</div>
+      <div class="mhead"><span>Modelo</span><span>Entrada (USD/1M)</span><span>Salida (USD/1M)</span><span></span></div>
+      <div id="modelRows"></div>
+      <div class="btns">
+        <button class="btn secondary small-btn" id="addModelBtn">Agregar modelo</button>
+        <button class="btn secondary small-btn" id="restoreModelsBtn">Restaurar ejemplos</button>
+      </div>
+      <div class="pricedate"><label for="pricesDate">Precios revisados el</label><input id="pricesDate" type="date"></div>
+      <div class="btns"><button class="btn" id="savePricesBtn">Guardar precios</button></div>
+    </section>
+
+    <footer class="foot">Dear Tokens · Prototipo experimental · Sin conexión a proveedores de IA · Los precios son editables y de ejemplo.</footer>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const KEY_S = 'dearTokens.sessions.v1';
+  const KEY_M = 'dearTokens.models.v1';
+  const KEY_P = 'dearTokens.prefs.v1';
+
+  // Tarifas de EJEMPLO (USD por 1 millón de tokens). Verificá las vigentes en la web de cada proveedor.
+  const DEFAULT_MODELS = [
+    {id:'generic', name:'Modelo genérico',               inRate:2.5,  outRate:10},
+    {id:'gpt4o',   name:'GPT-4o',                       inRate:2.5,  outRate:10},
+    {id:'mini',    name:'Modelo económico',             inRate:0.15, outRate:0.6},
+    {id:'claude',  name:'Claude',                       inRate:3,    outRate:15}
+  ];
+  const LEGACY_NAMES = {generic:'Modelo genérico', gpt4o:'GPT-4o', mini:'Modelo económico', claude:'Claude'};
+
+  /* ---------- utilidades ---------- */
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const num = v => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : 0; };
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const readJSON = (k, fb) => { try { const v = JSON.parse(localStorage.getItem(k)); return v === null ? fb : v; } catch (e) { return fb; } };
+  const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+  const fmtInt = n => Math.round(n).toLocaleString('es-AR');
+  const usd = n => '$' + Number(n || 0).toLocaleString('es-AR', {minimumFractionDigits:4, maximumFractionDigits:4}) + ' USD';
+  const rate = n => '$' + Number(n || 0).toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:4});
+  const dayKey = d => { const x = new Date(d); return x.getFullYear() + '-' + (x.getMonth() + 1) + '-' + x.getDate(); };
+  const fmtDate = iso => { const p = String(iso).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; };
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 4200);
+  }
+
+  /* ---------- datos ---------- */
+  function normModel(m) {
+    if (!m || typeof m !== 'object') return null;
+    const name = String(m.name || '').trim().slice(0, 40);
+    if (!name) return null;
+    return {id: (typeof m.id === 'string' && m.id) ? m.id.slice(0, 40) : newId(), name, inRate: num(m.inRate), outRate: num(m.outRate)};
+  }
+  function normSession(s) {
+    if (!s || typeof s !== 'object') return null;
+    const d = new Date(s.date); if (isNaN(d)) return null;
+    const inT = Math.round(num(s.inTokens !== undefined ? s.inTokens : s.tokens)); // sesiones 0.1 solo tenían "tokens"
+    const outT = Math.round(num(s.outTokens));
+    return {
+      id: (typeof s.id === 'string' && s.id) ? s.id.slice(0, 40) : newId(),
+      date: d.toISOString(),
+      label: String(s.label || '').slice(0, 80),
+      model: String(s.model || '').slice(0, 40),
+      modelName: String(s.modelName || LEGACY_NAMES[s.model] || s.model || 'Modelo').slice(0, 80),
+      inTokens: inT, outTokens: outT, tokens: inT + outT,
+      cost: num(s.cost), rateIn: num(s.rateIn), rateOut: num(s.rateOut)
+    };
+  }
+
+  let models = clone(DEFAULT_MODELS), pricesDate = '';
+  { const s = readJSON(KEY_M, null);
+    const list = s && Array.isArray(s.models) ? s.models.map(normModel).filter(Boolean) : [];
+    if (list.length) { models = list; pricesDate = /^\d{4}-\d{2}-\d{2}$/.test(s.updated || '') ? s.updated : ''; } }
+
+  const rawSessions = readJSON(KEY_S, []);
+  let sessions = (Array.isArray(rawSessions) ? rawSessions : []).map(normSession).filter(Boolean);
+  if (sessions.length) writeJSON(KEY_S, sessions); // migra sesiones de la versión 0.1
+
+  const stored = readJSON(KEY_P, {});
+  let prefs = {goal: 50000, model: ''};
+  if (stored && typeof stored === 'object') {
+    if (stored.goal !== undefined) prefs.goal = Math.round(num(stored.goal));
+    if (typeof stored.model === 'string') prefs.model = stored.model;
+  }
+  const savePrefs = () => writeJSON(KEY_P, prefs);
+
+  /* ---------- estimación ---------- */
+  // Heurística deliberadamente simple: combina longitud, palabras y puntuación.
+  // No es un tokenizador oficial y puede fallar según idioma/modelo.
+  // Coeficientes: el script calibracion/calibrar.py imprime una línea lista para pegar acá.
+  const COEF = {chars: 0.145, words: 0.52, punct: 0.22, nums: 0.25};
+  function estimate(text) {
+    if (!text.trim()) return {tokens:0, words:0, chars:0};
+    const words = (text.trim().match(/\S+/g) || []).length;
+    const chars = [...text].length;
+    const punctuation = (text.match(/[.,!?;:()[\]{}"'`~\-_/\\@#$%^&*+=<>|]/g) || []).length;
+    const numbers = (text.match(/\d+/g) || []).length;
+    const tokens = Math.max(1, Math.ceil(chars * COEF.chars + words * COEF.words + punctuation * COEF.punct + numbers * COEF.nums));
+    return {tokens, words, chars};
+  }
+
+  /* ---------- pantalla principal ---------- */
+  let current = {inTokens:0, outTokens:0, tokens:0, words:0, cost:0, model:'', modelName:'', rateIn:0, rateOut:0};
+  const currentModel = () => models.find(m => m.id === $('model').value) || models[0];
+
+  function fillSelect() {
+    const sel = $('model'); sel.innerHTML = '';
+    models.forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.name; sel.append(o); });
+    sel.value = models.some(m => m.id === prefs.model) ? prefs.model : models[0].id;
+  }
+  const todayTokens = () => { const k = dayKey(new Date()); return sessions.reduce((a, s) => dayKey(s.date) === k ? a + s.tokens : a, 0); };
+
+  function updateRing() {
+    const ring = $('ring'), goal = prefs.goal;
+    if (!goal) {
+      ring.style.setProperty('--deg', '0deg'); ring.classList.remove('over');
+      $('goalCaption').textContent = 'Definí una meta diaria para ver tu avance.'; return;
+    }
+    const total = todayTokens() + current.tokens, pct = total / goal;
+    ring.style.setProperty('--deg', Math.min(pct, 1) * 360 + 'deg');
+    ring.classList.toggle('over', pct > 1);
+    $('goalCaption').textContent = 'Hoy: ' + fmtInt(total) + ' de ' + fmtInt(goal) + ' tokens (' + Math.round(pct * 100) + ' %)'
+      + (current.tokens ? ', contando este texto' : '') + (pct > 1 ? '. Superaste tu meta.' : '.');
+  }
+
+  function calculate() {
+    const m = currentModel();
+    const a = estimate($('textInput').value), b = estimate($('outputInput').value);
+    current = {inTokens:a.tokens, outTokens:b.tokens, tokens:a.tokens + b.tokens, words:a.words + b.words,
+      cost:(a.tokens * m.inRate + b.tokens * m.outRate) / 1e6, model:m.id, modelName:m.name, rateIn:m.inRate, rateOut:m.outRate};
+    $('tokenCount').textContent = fmtInt(current.tokens);
+    $('inCount').textContent = fmtInt(a.tokens);
+    $('outCount').textContent = fmtInt(b.tokens);
+    $('wordCount').textContent = fmtInt(current.words);
+    $('cost').textContent = usd(current.cost);
+    $('modelCaption').textContent = m.name + ' · costo de entrada y salida';
+    $('rateInfo').textContent = 'Entrada ' + rate(m.inRate) + ' · Salida ' + rate(m.outRate) + ' por 1 millón de tokens · '
+      + (pricesDate ? 'precios revisados el ' + fmtDate(pricesDate) : 'tarifas de ejemplo sin revisar');
+    updateRing();
+  }
+
+  /* ---------- historial ---------- */
+  function renderHistory() {
+    const root = $('history'); root.innerHTML = '';
+    $('historyNote').textContent = '';
+    if (!sessions.length) { root.innerHTML = '<div class="empty">Todavía no guardaste sesiones.</div>'; return; }
+    sessions.slice().reverse().slice(0, 8).forEach(s => {
+      const row = document.createElement('div'); row.className = 'session';
+      const left = document.createElement('div'); left.className = 'left';
+      const title = document.createElement('strong'); title.textContent = s.label || s.modelName;
+      const meta = document.createElement('small');
+      meta.textContent = (s.label ? s.modelName + ' · ' : '') + new Date(s.date).toLocaleString('es-AR');
+      left.append(title, meta);
+      const right = document.createElement('div'); right.className = 'right';
+      const nums = document.createElement('div');
+      const tok = document.createElement('strong'); tok.textContent = fmtInt(s.tokens) + ' tokens';
+      const cost = document.createElement('small');
+      cost.textContent = (s.outTokens ? fmtInt(s.inTokens) + ' ent. / ' + fmtInt(s.outTokens) + ' sal. · ' : '') + usd(s.cost);
+      nums.append(tok, cost);
+      const del = document.createElement('button'); del.className = 'iconbtn'; del.type = 'button'; del.textContent = '×';
+      del.setAttribute('aria-label', 'Borrar la sesión ' + (s.label || s.modelName));
+      del.addEventListener('click', () => {
+        if (!confirm('¿Borrar esta sesión del historial?')) return;
+        sessions = sessions.filter(x => x.id !== s.id); writeJSON(KEY_S, sessions);
+        renderHistory(); updateTotals(); calculate();
+      });
+      right.append(nums, del); row.append(left, right); root.append(row);
+    });
+    if (sessions.length > 8) $('historyNote').textContent = 'Mostrando las 8 más recientes de ' + fmtInt(sessions.length) + '. Exportá para ver todas.';
+  }
+  function updateTotals() {
+    $('totalTokens').textContent = fmtInt(sessions.reduce((a, s) => a + s.tokens, 0));
+    $('totalCost').textContent = usd(sessions.reduce((a, s) => a + s.cost, 0)).replace(' USD', '');
+    $('totalSessions').textContent = fmtInt(sessions.length);
+  }
+
+  /* ---------- exportar / importar ---------- */
+  function download(name, mime, text) {
+    const url = URL.createObjectURL(new Blob([text], {type: mime}));
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  const stamp = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const csvText = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const csvNum = (n, d) => (d === undefined ? String(n) : Number(n).toFixed(d)).replace('.', ',');
+
+  $('exportJsonBtn').addEventListener('click', () => {
+    if (!sessions.length) { toast('Todavía no hay sesiones para exportar.'); return; }
+    download('dear-tokens-' + stamp() + '.json', 'application/json',
+      JSON.stringify({app:'dear-tokens', version:2, exportedAt:new Date().toISOString(), sessions}, null, 2));
+    toast('Copia exportada en JSON.');
+  });
+  $('exportCsvBtn').addEventListener('click', () => {
+    if (!sessions.length) { toast('Todavía no hay sesiones para exportar.'); return; }
+    const head = ['fecha','etiqueta','modelo','tokens_entrada','tokens_salida','tokens_total','costo_usd','tarifa_entrada_1M','tarifa_salida_1M'];
+    const rows = sessions.map(s => [csvText(s.date), csvText(s.label), csvText(s.modelName), s.inTokens, s.outTokens, s.tokens,
+      csvNum(s.cost, 6), csvNum(s.rateIn), csvNum(s.rateOut)].join(';'));
+    download('dear-tokens-' + stamp() + '.csv', 'text/csv;charset=utf-8', '\uFEFF' + [head.join(';')].concat(rows).join('\r\n'));
+    toast('CSV exportado (separado por punto y coma, listo para Excel en español).');
+  });
+  $('importBtn').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', async ev => {
+    const file = ev.target.files && ev.target.files[0]; ev.target.value = '';
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast('El archivo es demasiado grande (máximo 5 MB).'); return; }
+    try {
+      const parsed = JSON.parse(await file.text());
+      const list = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.sessions) ? parsed.sessions : null);
+      if (!list) { toast('Ese archivo no parece una copia de Dear Tokens.'); return; }
+      const known = new Set(sessions.map(s => s.id)); let added = 0;
+      list.map(normSession).filter(Boolean).forEach(s => { if (!known.has(s.id)) { known.add(s.id); sessions.push(s); added++; } });
+      sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
+      if (!writeJSON(KEY_S, sessions)) { toast('No se pudo guardar: el navegador bloqueó o llenó el almacenamiento.'); return; }
+      renderHistory(); updateTotals(); calculate();
+      toast('Importadas ' + fmtInt(added) + ' sesiones nuevas' + (list.length - added > 0 ? ' (' + fmtInt(list.length - added) + ' ya estaban o no eran válidas).' : '.'));
+    } catch (e) { toast('No se pudo leer el archivo: no es un JSON válido.'); }
+  });
+
+  /* ---------- modelos y precios ---------- */
+  let draft = [];
+  const startDraft = () => { draft = models.map(m => ({id:m.id, name:m.name, inRate:String(m.inRate), outRate:String(m.outRate)})); $('pricesDate').value = pricesDate; };
+  function field(type, value, aria, cls, onInput) {
+    const i = document.createElement('input'); i.type = type; i.value = value; i.className = cls || '';
+    i.setAttribute('aria-label', aria);
+    if (type === 'number') { i.min = '0'; i.step = '0.01'; i.inputMode = 'decimal'; } else { i.maxLength = 40; }
+    i.addEventListener('input', () => onInput(i.value)); return i;
+  }
+  function renderModelRows() {
+    const root = $('modelRows'); root.innerHTML = '';
+    draft.forEach((m, i) => {
+      const row = document.createElement('div'); row.className = 'mrow';
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'iconbtn mdel'; del.textContent = '×';
+      del.setAttribute('aria-label', 'Quitar el modelo ' + (m.name || 'sin nombre')); del.disabled = draft.length === 1;
+      del.addEventListener('click', () => { draft.splice(i, 1); renderModelRows(); });
+      row.append(
+        field('text', m.name, 'Nombre del modelo', 'mname', v => { m.name = v; }),
+        field('number', m.inRate, 'Tarifa de entrada en USD por millón de tokens', '', v => { m.inRate = v; }),
+        field('number', m.outRate, 'Tarifa de salida en USD por millón de tokens', '', v => { m.outRate = v; }),
+        del);
+      root.append(row);
+    });
+  }
+  $('addModelBtn').addEventListener('click', () => {
+    if (draft.length >= 20) { toast('Llegaste al máximo de 20 modelos.'); return; }
+    draft.push({id:newId(), name:'', inRate:'', outRate:''}); renderModelRows();
+    const last = $('modelRows').querySelector('.mrow:last-child input'); if (last) last.focus();
+  });
+  $('restoreModelsBtn').addEventListener('click', () => {
+    draft = DEFAULT_MODELS.map(m => ({id:m.id, name:m.name, inRate:String(m.inRate), outRate:String(m.outRate)}));
+    $('pricesDate').value = ''; renderModelRows(); toast('Se restauraron los ejemplos. Tocá “Guardar precios” para aplicarlos.');
+  });
+  $('savePricesBtn').addEventListener('click', () => {
+    const out = [];
+    for (const m of draft) {
+      const name = m.name.trim();
+      if (!name) { toast('Todos los modelos necesitan un nombre.'); return; }
+      const a = m.inRate === '' ? NaN : Number(m.inRate), b = m.outRate === '' ? NaN : Number(m.outRate);
+      if (!(a >= 0) || !(b >= 0) || !Number.isFinite(a) || !Number.isFinite(b)) { toast('Revisá las tarifas de “' + name + '”: deben ser números de 0 en adelante.'); return; }
+      out.push({id:m.id, name:name.slice(0, 40), inRate:a, outRate:b});
+    }
+    if (!out.length) { toast('Dejá al menos un modelo.'); return; }
+    const date = $('pricesDate').value;
+    if (!writeJSON(KEY_M, {updated:date, models:out})) { toast('No se pudo guardar: el navegador bloqueó o llenó el almacenamiento.'); return; }
+    models = out; pricesDate = date;
+    const keep = $('model').value; prefs.model = keep; fillSelect(); prefs.model = $('model').value; savePrefs();
+    startDraft(); renderModelRows(); calculate(); toast('Precios guardados.');
+  });
+
+  /* ---------- eventos ---------- */
+  $('estimateBtn').addEventListener('click', calculate);
+  $('clearBtn').addEventListener('click', () => { $('textInput').value = ''; $('outputInput').value = ''; calculate(); $('textInput').focus(); });
+  $('textInput').addEventListener('input', calculate);
+  $('outputInput').addEventListener('input', calculate);
+  $('model').addEventListener('change', () => { prefs.model = $('model').value; savePrefs(); calculate(); });
+  $('goalInput').addEventListener('input', () => { prefs.goal = Math.round(num($('goalInput').value)); savePrefs(); updateRing(); });
+  $('saveBtn').addEventListener('click', () => {
+    calculate();
+    if (!current.tokens) { toast('Pegá un texto antes de guardar una sesión.'); return; }
+    const s = {id:newId(), date:new Date().toISOString(), label:$('sessionLabel').value.trim().slice(0, 80),
+      model:current.model, modelName:current.modelName, inTokens:current.inTokens, outTokens:current.outTokens,
+      tokens:current.tokens, cost:current.cost, rateIn:current.rateIn, rateOut:current.rateOut};
+    sessions.push(s);
+    if (!writeJSON(KEY_S, sessions)) { sessions.pop(); toast('No se pudo guardar: el navegador bloqueó o llenó el almacenamiento.'); return; }
+    $('textInput').value = ''; $('outputInput').value = '';
+    calculate(); renderHistory(); updateTotals();
+    toast('Sesión guardada. Limpiamos los textos para que empieces otra.');
+  });
+  $('resetStatsBtn').addEventListener('click', () => {
+    if (!sessions.length) { toast('No hay historial para borrar.'); return; }
+    if (!confirm('¿Borrar todo el historial guardado en este navegador? Exportá una copia antes si la querés conservar.')) return;
+    sessions = []; writeJSON(KEY_S, sessions); renderHistory(); updateTotals(); calculate();
+  });
+
+  /* ---------- inicio ---------- */
+  fillSelect(); startDraft(); renderModelRows();
+  $('goalInput').value = prefs.goal || '';
+  calculate(); renderHistory(); updateTotals();
+
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const w = reg.installing; if (!w) return;
+          w.addEventListener('statechange', () => {
+            if (w.state === 'installed' && navigator.serviceWorker.controller) toast('Hay una versión nueva. Cerrá y volvé a abrir la app para usarla.');
+          });
+        });
+      }).catch(() => {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
